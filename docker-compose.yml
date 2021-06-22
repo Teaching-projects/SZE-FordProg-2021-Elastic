@@ -1,0 +1,53 @@
+version: '2.2'
+services:
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elastic/data/:/usr/share/elasticsearch/data
+      - ./elastic/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+    ports:
+      - 9200:9200
+    networks:
+      - elastic
+
+
+  kib01:
+    image: docker.elastic.co/kibana/kibana:7.10.0
+    container_name: kib01
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://es01:9200
+      ELASTICSEARCH_HOSTS: http://es01:9200
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - elastic
+
+  ls01:
+    image: docker.elastic.co/logstash/logstash:7.10.0
+    container_name: ls01
+    ports:
+      - 5044:5044
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/conf.d/:/usr/share/logstash/pipeline/
+      - ./logstash/patterns/:/etc/logstash/patterns/
+      - ./Log/:/usr/share/logstash/Log/
+    networks:
+      - elastic
+  
+networks:
+  elastic:
+    driver: bridge
